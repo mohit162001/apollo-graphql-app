@@ -4,7 +4,6 @@ let { products, categories, reviews } = require("./data");
 
 const { v1: uuid } = require("uuid");
 
-
 const typeDefs = gql`
   type Query {
     hello: String!
@@ -18,11 +17,14 @@ const typeDefs = gql`
     addCategory(input: AddCategoryInput): Category!
     addProduct(input: AddProductInput): Product!
     addReview(input: AddReviewInput): Review!
-    deleteCategory(id:ID!): Boolean
-    deleteProduct(id:ID!): Boolean
-    deleteReview(id:ID!):Boolean
+    deleteCategory(id: ID!): Boolean
+    deleteProduct(id: ID!): Boolean
+    deleteReview(id: ID!): Boolean
+    updateCategory(id: ID!, input: UpdateCategoryInput): Category
+    updateProduct(id: ID!, input: UpdateProductInput): Product
+    updateReview(id: ID!,input: UpdateReviewInput): Review
   }
- 
+
   type Product {
     id: ID!
     name: String!
@@ -57,8 +59,11 @@ const typeDefs = gql`
     byRating: Int
   }
 
-#   mutation schemas
+  #   mutation schemas
   input AddCategoryInput {
+    type: String!
+  }
+  input UpdateCategoryInput {
     type: String!
   }
 
@@ -72,6 +77,16 @@ const typeDefs = gql`
     categoryID: String!
   }
 
+  input UpdateProductInput {
+    name: String
+    price: Float
+    description: String
+    quantity: Int
+    image: String
+    isAvailable: Boolean
+    categoryID: String
+  }
+
   input AddReviewInput {
     comment: String!
     name: String!
@@ -79,15 +94,21 @@ const typeDefs = gql`
     rating: Int!
     productId: String!
   }
+  input UpdateReviewInput {
+    comment: String
+    name: String
+    date: String
+    rating: Int
+    productId: String
+  }
 `;
-
 
 const resolvers = {
   Query: {
     hello: () => {
       return "Hello World";
     },
-    products: (parent, args, context) => {    
+    products: (parent, args, context) => {
       let filteredProducts = products;
       const { filter } = args;
       if (filter) {
@@ -111,7 +132,7 @@ const resolvers = {
       return categories.find((item) => item.id === args.id);
     },
   },
-  ///////////////////////mutaton////////////////////////////
+
   Mutation: {
     addCategory: (parent, args, context) => {
       const { type } = args.input;
@@ -143,38 +164,78 @@ const resolvers = {
         categoryID,
       };
 
-      products.push(newProduct); 
+      products.push(newProduct);
       return newProduct;
     },
     addReview: (parent, args, context) => {
       const { name, comment, date, rating, productId } = args.input;
-      const newReview = {id:uuid(), name, comment, date, rating, productId };
+      const newReview = { id: uuid(), name, comment, date, rating, productId };
       reviews.push(newReview);
       return newReview;
     },
-    deleteCategory:(parent,args,context)=>{
-        const {id} = args
-        categories = categories.filter((item)=>(item.id !== id))
-        products = products.map((item)=>{
-            if(item.categoryID===id){
-                return {
-                    ...item,
-                    categoryID: null
-                }
-             }else{return item}
-        })
-        return true;
+    deleteCategory: (parent, args, context) => {
+      const { id } = args;
+      categories = categories.filter((item) => item.id !== id);
+      products = products.map((item) => {
+        if (item.categoryID === id) {
+          return {
+            ...item,
+            categoryID: null,
+          };
+        } else {
+          return item;
+        }
+      });
+      return true;
     },
-    deleteProduct:(parent,args,context)=>{
-        const {id} = args;
-        products = products.filter((item)=>(item.id !== id))
-        return true;
+    deleteProduct: (parent, args, context) => {
+      const { id } = args;
+      products = products.filter((item) => item.id !== id);
+      return true;
     },
-    deleteReview:(parent,args,context)=>{
-        const {id} = args
-        reviews  = reviews.filter((item)=>item.id !==id)
-        return true
-    }
+    deleteReview: (parent, args, context) => {
+      const { id } = args;
+      reviews = reviews.filter((item) => item.id !== id);
+      return true;
+    },
+    updateCategory: (parent, args, context) => {
+      const { id,input } = args;
+      
+      const index = categories.findIndex((category) => category.id === id);
+      if (index === -1) {
+        return null;
+      }
+      categories[index] = {
+        ...categories[index],
+        ...input
+      };
+      return categories[index];
+    },
+    updateProduct: (parent, args, context) => {
+      const { id, input } = args;
+      const index = products.findIndex((product) => product.id === id);
+      if (index === -1) {
+        return null;
+      }
+      products[index] = {
+        ...products[index],
+        ...input,
+      }; 
+      return products[index];
+    },
+    updateReview: (parent, args, context) => {
+      const { id,input } = args;
+      
+      const index = reviews.findIndex((review) => review.id === id);
+      if (index === -1) {
+        return null;
+      }
+      reviews[index] = {
+        ...reviews[index],
+        ...input
+      };
+      return reviews[index];
+    },
   },
   Product: {
     category: (parent, args, context) => {
@@ -189,7 +250,6 @@ const resolvers = {
   Category: {
     products: (parent, args, context) => {
       const { id } = parent;
-
       return products.filter((item) => id === item.categoryID);
     },
   },
