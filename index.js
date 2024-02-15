@@ -1,7 +1,9 @@
 const { ApolloServer, gql } = require("apollo-server");
 
-const { products, categories, reviews } = require("./data");
+let { products, categories, reviews } = require("./data");
+
 const { v1: uuid } = require("uuid");
+
 
 const typeDefs = gql`
   type Query {
@@ -16,8 +18,11 @@ const typeDefs = gql`
     addCategory(input: AddCategoryInput): Category!
     addProduct(input: AddProductInput): Product!
     addReview(input: AddReviewInput): Review!
+    deleteCategory(id:ID!): Boolean
+    deleteProduct(id:ID!): Boolean
+    deleteReview(id:ID!):Boolean
   }
-
+ 
   type Product {
     id: ID!
     name: String!
@@ -26,14 +31,14 @@ const typeDefs = gql`
     image: String!
     price: Float!
     isAvailable: Boolean!
-    categoryID: String!
+    categoryID: String
     category: Category
     reviewId: String!
     reviews: [Review!]
   }
 
   type Category {
-    id: ID!
+    id: ID
     type: String!
     products: [Product!]
   }
@@ -76,12 +81,13 @@ const typeDefs = gql`
   }
 `;
 
+
 const resolvers = {
   Query: {
     hello: () => {
       return "Hello World";
     },
-    products: (parent, args, context) => {
+    products: (parent, args, context) => {    
       let filteredProducts = products;
       const { filter } = args;
       if (filter) {
@@ -137,7 +143,7 @@ const resolvers = {
         categoryID,
       };
 
-      products.push(newProduct);
+      products.push(newProduct); 
       return newProduct;
     },
     addReview: (parent, args, context) => {
@@ -146,6 +152,29 @@ const resolvers = {
       reviews.push(newReview);
       return newReview;
     },
+    deleteCategory:(parent,args,context)=>{
+        const {id} = args
+        categories = categories.filter((item)=>(item.id !== id))
+        products = products.map((item)=>{
+            if(item.categoryID===id){
+                return {
+                    ...item,
+                    categoryID: null
+                }
+             }else{return item}
+        })
+        return true;
+    },
+    deleteProduct:(parent,args,context)=>{
+        const {id} = args;
+        products = products.filter((item)=>(item.id !== id))
+        return true;
+    },
+    deleteReview:(parent,args,context)=>{
+        const {id} = args
+        reviews  = reviews.filter((item)=>item.id !==id)
+        return true
+    }
   },
   Product: {
     category: (parent, args, context) => {
@@ -160,7 +189,7 @@ const resolvers = {
   Category: {
     products: (parent, args, context) => {
       const { id } = parent;
-      console.log(parent);
+
       return products.filter((item) => id === item.categoryID);
     },
   },
