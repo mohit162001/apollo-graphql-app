@@ -64,7 +64,7 @@ const typeDefs = gql`
     type: String!
   }
   input UpdateCategoryInput {
-    type: String!
+    type: String
   }
 
   input AddProductInput {
